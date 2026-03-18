@@ -1,0 +1,19 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.egg-info/
+dist/
+build/
+.env
+venv/
+.venv/
+
+# Output assets (변환된 이미지/데이터는 제외)
+output_assets/
+*.psd
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
