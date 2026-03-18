@@ -17,3 +17,7 @@ output_assets/
 .DS_Store
 Thumbs.db
 desktop.ini
+
+# 실행 파일
+*.exe
+*.lnk
