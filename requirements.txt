@@ -1,0 +1,4 @@
+psd-tools>=1.9.35
+Pillow>=10.2.0
+requests>=2.31.0
+python-dotenv>=1.0.1

@@ -1,12 +1,15 @@
 import requests
 import json
 import os
+from dotenv import load_dotenv
+
+load_dotenv()
 
 FIGMA_API_URL = "https://api.figma.com/v1"
 
 class FigmaAutomator:
-    def __init__(self, token, team_id=None):
-        self.headers = {"X-Figma-Token": token}
+    def __init__(self, token=None, team_id=None):
+        self.headers = {"X-Figma-Token": token or os.getenv("FIGMA_TOKEN")}
         self.team_id = team_id
 
     def create_new_file(self, name):
