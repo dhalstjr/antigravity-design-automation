@@ -1,0 +1,117 @@
+{
+  "name": "Design Automation Report Workflow",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "report-automation-result",
+        "options": {}
+      },
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        250,
+        300
+      ],
+      "id": "webhook-id"
+    },
+    {
+      "parameters": {
+        "fileSelector": "c:/Users/User/Desktop/안티그래비티/antigravity-design-automation/output_assets/metadata.json",
+        "options": {}
+      },
+      "name": "Read Metadata",
+      "type": "n8n-nodes-base.readBinaryFile",
+      "typeVersion": 1,
+      "position": [
+        450,
+        300
+      ],
+      "id": "read-metadata-id"
+    },
+    {
+      "parameters": {
+        "fieldToConvert": "data",
+        "options": {}
+      },
+      "name": "JSON Parse",
+      "type": "n8n-nodes-base.spreadsheetFile",
+      "typeVersion": 1,
+      "position": [
+        650,
+        300
+      ],
+      "id": "json-parse-id"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://discord.com/api/webhooks/YOUR_WEBHOOK_URL",
+        "sendBinaryData": false,
+        "options": {},
+        "headerParametersUi": {
+          "parameter": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "bodyParametersUi": {
+          "parameter": [
+            {
+              "name": "content",
+              "value": "=디자인 자동화 작업이 완료되었습니다! {{ $json.length }}개의 레이어가 추출되었습니다."
+            }
+          ]
+        }
+      },
+      "name": "Discord Report",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 1,
+      "position": [
+        850,
+        300
+      ],
+      "id": "discord-report-id"
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Read Metadata",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read Metadata": {
+      "main": [
+        [
+          {
+            "node": "JSON Parse",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "JSON Parse": {
+      "main": [
+        [
+          {
+            "node": "Discord Report",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {}
+}
