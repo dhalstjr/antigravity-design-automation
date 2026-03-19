@@ -1,0 +1,12 @@
+{
+  "name": "Antigravity PSD Importer",
+  "id": "antigravity-psd-importer-001",
+  "api": "1.0.0",
+  "main": "plugin_engine.js",
+  "ui": "ui.html",
+  "editorType": ["figma"],
+  "networkAccess": {
+    "allowedDomains": ["https://cdn.jsdelivr.net"],
+    "reasoning": "PSD 파싱 라이브러리(ag-psd)를 CDN에서 로드합니다."
+  }
+}

@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body {
+    font-family: 'Inter', -apple-system, sans-serif;
+    background: #1e1e1e; color: #e5e5e5;
+    font-size: 13px; height: 100vh;
+    display: flex; flex-direction: column; overflow: hidden;
+  }
+  .header {
+    padding: 16px 20px 0;
+    background: linear-gradient(135deg, #f43f5e 0%, #fb923c 100%);
+  }
+  .header-content { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
+  .header-icon { font-size: 28px; }
+  .header h1 { font-size: 16px; font-weight: 700; color: #fff; }
+  .header p { font-size: 11px; color: rgba(255,255,255,0.8); margin-top: 2px; }
+
+  .tabs { display: flex; border-bottom: 1px solid rgba(255,255,255,0.1); }
+  .tab { 
+    padding: 10px 16px; color: rgba(255,255,255,0.6); font-weight: 600; font-size: 12px;
+    cursor: pointer; border-bottom: 2px solid transparent; transition: 0.2s;
+  }
+  .tab:hover { color: #fff; }
+  .tab.active { color: #fff; border-bottom: 2px solid #fff; }
+
+  .view-container { flex: 1; display: flex; flex-direction: column; overflow: auto; position: relative; }
+  .tab-view { flex: 1; display: flex; flex-direction: column; overflow: auto; }
+  .hidden { display: none !important; }
+
+  .container-pad { padding: 20px; flex: 1; display:flex; flex-direction:column; gap:20px; }
+  .card { background: #2a2a2a; border-radius: 12px; padding: 16px; border: 1px solid #333; }
+  .card-title { font-size: 14px; font-weight: 700; color: #fb923c; margin-bottom: 8px; display:flex; align-items:center; gap:8px;}
+  
+  .dropzone {
+    border: 2px dashed rgba(251,146,60,0.4); border-radius: 8px; cursor: pointer;
+    padding: 24px 16px; display: flex; flex-direction: column; align-items: center;
+    background: rgba(251,146,60,0.05); transition: 0.2s; text-align:center; mt-4;
+  }
+  .dropzone:hover { border-color:#fb923c; background:rgba(251,146,60,0.1); }
+  .dropzone .icon { font-size:32px; margin-bottom:8px; }
+
+  .btn { width:100%; padding: 12px; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; border: none; transition: 0.2s; }
+  .btn-primary { background: #f43f5e; color: #fff; }
+  .btn-primary:hover { background: #e11d48; }
+
+  .sync-instructions { font-size: 12px; color: #ccc; margin-bottom: 12px; line-height:1.5; }
+  .sync-format-example { background:#111; padding:8px; border-radius:6px; font-family:monospace; font-size:11px; color:#fb923c; margin-bottom:12px; white-space:pre-wrap;}
+  #tsvInput {
+    width: 100%; height: 250px; background: #1a1a1a; color: #fff;
+    border: 1px solid #555; border-radius: 8px; padding: 12px; font-family: monospace;
+    font-size: 12px; resize: vertical; outline: none; white-space: pre; overflow:auto;
+  }
+  #tsvInput:focus { border-color: #fb923c; }
+
+  /* Toast & Progress */
+  #toast { position: fixed; bottom: 40px; left: 50%; transform: translateX(-50%); background: #4ade80; color: #000; padding: 8px 16px; border-radius: 20px; font-size: 12px; font-weight:bold; display: none; z-index: 1000; }
+  .progress-section { position:absolute; top:0; left:0; width:100%; height:100%; background:rgba(30,30,30,0.9); display:flex; flex-direction:column; justify-content:center; align-items:center; z-index:50;}
+  .progress-bar { width: 80%; height: 6px; background: #333; border-radius: 3px; overflow: hidden; margin-top: 12px; }
+  .progress-fill { height: 100%; background: #f43f5e; width: 0%; transition: 0.3s; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-content">
+    <span class="header-icon">🎨</span>
+    <div>
+      <h1>Antigravity Data Sync</h1>
+      <p>피그마 오토레이아웃 템플릿 & 시트 기반 디자인 자동화</p>
+    </div>
+  </div>
+  <div class="tabs">
+    <div class="tab active" data-target="templateTab">1. 템플릿 만들기</div>
+    <div class="tab" data-target="syncTab">2. 데이터 대량 복제</div>
+  </div>
+</div>
+
+<div id="toast">복사 완료!</div>
+
+<div class="view-container">
+
+  <!-- ================= TAB 1: TEMPLATE MAKER ================= -->
+  <div id="templateTab" class="tab-view">
+    <div class="container-pad">
+      
+      <div class="card">
+        <div class="card-title">💡 처음이라면?</div>
+        <p style="font-size:12px; color:#ccc; line-height:1.5; margin-bottom:12px;">오토 레이아웃(Auto Layout)이 적용되어 절대 겹치지 않는 완벽한 <strong>기본 양식 템플릿</strong>을 캔버스 바로 생성합니다. 이 템플릿의 색상, 폰트, 배경 이미지를 자유롭게 수정해서 사용하세요.</p>
+        <button class="btn btn-primary" onclick="createBasicTemplate()">✨ 기본 오토레이아웃 템플릿 자동 생성</button>
+      </div>
+
+      <div class="card">
+        <div class="card-title">🖼️ 기존 PSD가 있다면? (배경 소스 추출)</div>
+        <p style="font-size:12px; color:#ccc; line-height:1.5;">어긋나는 텍스트는 버리고, **깨끗한 배경 이미지 소스만** 임포트합니다. 추출된 배경 위에 피그마 텍스트 도구(T)를 이용해 직접 글자를 올리고 오토레이아웃 처리하는 것이 가장 확실합니다.</p>
+        <div id="dropzone" class="dropzone">
+          <span class="icon">📂</span>
+          <strong>여기에 PSD 파일을 놓으세요</strong>
+          <span style="font-size:11px; color:#888; margin-top:4px;">(배경 이미지만 추출됩니다)</span>
+        </div>
+      </div>
+      
+    </div>
+  </div>
+
+  <!-- ================= TAB 2: DATA SYNC ================= -->
+  <div id="syncTab" class="tab-view hidden">
+    <div class="container-pad">
+      <div class="card" style="flex:1; display:flex; flex-direction:column; margin:0;">
+        <div class="card-title">🔄 시트 데이터(엑셀) 대량 복제</div>
+        <p class="sync-instructions">
+          1. 피그마에서 완성된 <b>템플릿(프레임 1개)을 클릭(선택)</b>해두세요.<br>
+          2. 구글 시트에서 표(데이터) 구조를 복사하여 아래에 붙여넣으세요.<br>
+        </p>
+        <div class="sync-format-example">올바른 표 형태 (레이어명과 일치해야 함):
+타이틀1           타이틀2         상품명          가격(숫자)
+봄날 이벤트       피부 관리       포텐자+스킨     30
+여름 세일         다이어트       지방분해주사    50</div>
+        <textarea id="tsvInput" placeholder="(이곳에 데이터를 붙여넣으세요)"></textarea>
+        <button class="btn btn-primary" style="margin-top:16px;" onclick="generateVariants()">🚀 템플릿 디자인 대량 생성</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Progress -->
+  <div id="progressView" class="progress-section hidden">
+    <div id="progressText" style="font-size:14px; font-weight:bold; color:#fff;">처리 중...</div>
+    <div class="progress-bar"><div id="progressFill" class="progress-fill"></div></div>
+  </div>
+</div>
+
+<input type="file" id="fileInput" accept=".psd" style="display:none">
+
+<script type="module">
+import { readPsd } from 'https://cdn.jsdelivr.net/npm/ag-psd/+esm';
+
+const $ = (id) => document.getElementById(id);
+
+// ── 탭 네비게이션 ──
+document.querySelectorAll('.tab').forEach(tab => {
+  tab.onclick = () => {
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.tab-view').forEach(v => v.classList.add('hidden'));
+    tab.classList.add('active');
+    $(tab.dataset.target).classList.remove('hidden');
+  };
+});
+
+window.createBasicTemplate = () => {
+  setProgress('오토레이아웃 템플릿을 생성하고 있습니다...', 80);
+  parent.postMessage({ pluginMessage: { type: 'create-basic-template' } }, '*');
+};
+
+window.generateVariants = () => {
+  const input = $('tsvInput').value.trim();
+  if (!input) return alert('시트 데이터를 복사한 후 붙여넣어 주세요.');
+  
+  const lines = input.split('\n');
+  if (lines.length < 2) return alert('최소 1줄의 헤더(레이어명)와 1줄의 데이터 내용이 필요합니다!');
+  
+  let headers = lines[0].split('\t').map(h => h.trim());
+  if (headers.includes("LayerName,TextContent") || headers.includes("LayerName") || headers.length === 1) {
+      return alert("앗! 세로 형태의 1열 데이터입니다.\n표는 반드시 가로 방향(열=항목, 행=데이터)이어야 합니다.");
+  }
+
+  const data = [];
+  for (let i = 1; i < lines.length; i++) {
+    const row = lines[i].split('\t');
+    if (row.length === 1 && !row[0]) continue;
+    const obj = {};
+    for (let j = 0; j < headers.length; j++) {
+      let val = (row[j] || '').trim();
+      if (val.startsWith('"') && val.endsWith('"') && val.length > 1) {
+         val = val.substring(1, val.length - 1).replace(/""/g, '"');
+      }
+      obj[headers[j]] = val;
+    }
+    data.push(obj);
+  }
+  
+  setProgress('시트 내용으로 디자인을 대량 생산 중...', 50);
+  parent.postMessage({ pluginMessage: { type: 'generate-variants', data: data } }, '*');
+};
+
+function setProgress(msg, pct) {
+  $('progressView').classList.remove('hidden');
+  $('progressText').textContent = msg;
+  $('progressFill').style.width = pct + '%';
+}
+function hideProgress() {
+  $('progressView').classList.add('hidden');
+}
+
+// ── PSD Drop (Background Extractor) ──
+$('dropzone').onclick = () => $('fileInput').click();
+$('fileInput').onchange = (e) => e.target.files[0] && handleFile(e.target.files[0]);
+$('dropzone').ondragover = (e) => { e.preventDefault(); $('dropzone').style.borderColor = '#f43f5e'; };
+$('dropzone').ondragleave = () => { $('dropzone').style.borderColor = ''; };
+$('dropzone').ondrop = (e) => {
+  e.preventDefault();
+  const file = e.dataTransfer.files[0];
+  if (file && file.name.endsWith('.psd')) handleFile(file);
+};
+
+let filteredCount = 0;
+async function extractLayer(layer, idx) {
+  if (layer.hidden || (layer.opacity !== undefined && layer.opacity <= 0)) { return null; }
+  const x = Math.round(layer.left || 0), y = Math.round(layer.top || 0);
+  const w = Math.round((layer.right || 0) - (layer.left || 0));
+  const h = Math.round((layer.bottom || 0) - (layer.top || 0));
+
+  if (w <= 0 && h <= 0 && !(layer.children && layer.children.length > 0)) { return null; }
+
+  // 텍스트 레이어는 완전 무시! 배경/이미지만 추출합니다.
+  if (layer.text) { return null; }
+
+  const data = {
+    name: layer.name || `Layer_${idx}`,
+    x, y, width: Math.max(w, 1), height: Math.max(h, 1),
+    opacity: layer.opacity !== undefined ? layer.opacity : 1, visible: true
+  };
+
+  if (layer.children && layer.children.length > 0) {
+    data.type = 'group'; data.children = [];
+    for (let child of layer.children) {
+      const c = await extractLayer(child, idx++);
+      if (c) data.children.push(c);
+    }
+    if (data.children.length === 0) return null;
+  } else {
+    data.type = 'image';
+    if (layer.canvas) {
+      const blob = await new Promise(r => layer.canvas.toBlob(r, 'image/png'));
+      data.imageBytes = Array.from(new Uint8Array(await blob.arrayBuffer()));
+    }
+  }
+  return data;
+}
+
+async function handleFile(file) {
+  setProgress('PSD에서 텍스트를 제거하고 배경 소스만 추출 중...', 20);
+  
+  try {
+    const psd = readPsd(new Uint8Array(await file.arrayBuffer()));
+    const layers = [];
+    for (let i=0; i<(psd.children || []).length; i++) {
+       const l = await extractLayer(psd.children[i], i);
+       if(l) layers.push(l);
+    }
+    setProgress('피그마 캔버스에 그리는 중...', 80);
+    parent.postMessage({ pluginMessage: { type: 'import-psd-bg', layers, canvas: { width: psd.width, height: psd.height }, fileName: file.name } }, '*');
+  } catch (e) {
+    hideProgress();
+    alert("오류 발생: " + e.message);
+  }
+}
+
+window.onmessage = (e) => {
+  const msg = e.data.pluginMessage;
+  if (msg.type === 'done') {
+    hideProgress();
+    alert("✅ " + msg.message);
+  }
+  if (msg.type === 'error') {
+    hideProgress();
+    alert("❌ " + msg.message);
+  }
+};
+</script>
+</body>
+</html>

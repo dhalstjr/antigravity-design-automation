@@ -1,0 +1,682 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Antigravity — PSD → Figma 자동화</title>
+<meta name="description" content="포토샵 파일을 Figma로 자동 변환하는 디자인 자동화 파이프라인" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+<style>
+/* ══════════════════════════════════════════════════════════
+   DESIGN TOKENS
+   ══════════════════════════════════════════════════════════ */
+:root {
+  --bg: #09090f;
+  --bg2: #0f0f18;
+  --surface: #14141f;
+  --surface2: #1c1c2b;
+  --surface3: #242436;
+  --border: #2a2a40;
+  --border-hover: #3a3a58;
+  --accent: #7b61ff;
+  --accent2: #a78bfa;
+  --accent-glow: rgba(123, 97, 255, 0.25);
+  --accent-glow2: rgba(123, 97, 255, 0.10);
+  --success: #22c55e;
+  --success-bg: rgba(34, 197, 94, 0.08);
+  --error: #ef4444;
+  --error-bg: rgba(239, 68, 68, 0.08);
+  --warn: #f59e0b;
+  --text1: #f0eeff;
+  --text2: #a0a0c0;
+  --text3: #606080;
+  --radius: 14px;
+  --radius-sm: 10px;
+  --radius-xs: 8px;
+  --transition: 0.25s cubic-bezier(0.4,0,0.2,1);
+  --shadow-accent: 0 0 30px -5px var(--accent-glow);
+}
+
+/* ── RESET ──────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  background: var(--bg);
+  color: var(--text1);
+  min-height: 100vh;
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ── BACKGROUND GLOW ───────────────────────────────── */
+body::before {
+  content: '';
+  position: fixed; top: -20%; left: 50%; transform: translateX(-50%);
+  width: 800px; height: 600px;
+  background: radial-gradient(ellipse, var(--accent-glow2) 0%, transparent 70%);
+  pointer-events: none; z-index: 0;
+}
+
+/* ── LAYOUT ────────────────────────────────────────── */
+.container {
+  max-width: 780px;
+  margin: 0 auto;
+  padding: 40px 24px 60px;
+  position: relative; z-index: 1;
+}
+
+/* ── HEADER ────────────────────────────────────────── */
+.header {
+  text-align: center;
+  margin-bottom: 48px;
+}
+.logo-wrap {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 64px; height: 64px;
+  background: linear-gradient(135deg, var(--accent), #a855f7);
+  border-radius: 18px;
+  font-size: 30px;
+  box-shadow: var(--shadow-accent);
+  margin-bottom: 18px;
+}
+.header h1 {
+  font-size: 28px; font-weight: 800;
+  letter-spacing: -0.6px;
+  background: linear-gradient(135deg, var(--text1) 30%, var(--accent2));
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  margin-bottom: 8px;
+}
+.header p { color: var(--text2); font-size: 15px; }
+
+/* ── STEP CARDS ────────────────────────────────────── */
+.step-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 28px 28px 24px;
+  margin-bottom: 20px;
+  transition: border-color var(--transition);
+  position: relative;
+  overflow: hidden;
+}
+.step-card::before {
+  content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
+  background: linear-gradient(90deg, transparent, var(--accent), transparent);
+  opacity: 0; transition: opacity var(--transition);
+}
+.step-card:hover { border-color: var(--border-hover); }
+.step-card:hover::before { opacity: 1; }
+.step-card.active { border-color: var(--accent); }
+.step-card.active::before { opacity: 1; }
+
+.step-header {
+  display: flex; align-items: center; gap: 14px;
+  margin-bottom: 18px;
+}
+.step-number {
+  display: flex; align-items: center; justify-content: center;
+  width: 32px; height: 32px; min-width: 32px;
+  border-radius: 10px;
+  font-weight: 700; font-size: 14px;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  color: var(--text2);
+  transition: var(--transition);
+}
+.step-card.active .step-number {
+  background: linear-gradient(135deg, var(--accent), #5b3fd8);
+  border-color: var(--accent);
+  color: #fff;
+  box-shadow: 0 0 12px var(--accent-glow);
+}
+.step-card.done .step-number {
+  background: var(--success); border-color: var(--success); color: #fff;
+}
+.step-title { font-size: 16px; font-weight: 700; }
+.step-desc { color: var(--text2); font-size: 13px; line-height: 1.6; }
+
+/* ── DROP ZONE ─────────────────────────────────────── */
+.drop-zone {
+  border: 2px dashed var(--border);
+  border-radius: var(--radius-sm);
+  padding: 36px 20px;
+  text-align: center;
+  cursor: pointer;
+  transition: var(--transition);
+  background: var(--bg2);
+  position: relative;
+  margin-top: 16px;
+}
+.drop-zone:hover, .drop-zone.drag-over {
+  border-color: var(--accent);
+  background: var(--surface2);
+  box-shadow: inset 0 0 40px var(--accent-glow2);
+}
+.drop-zone input[type="file"] {
+  position: absolute; inset: 0; opacity: 0; cursor: pointer;
+}
+.drop-icon { font-size: 36px; display: block; margin-bottom: 12px; }
+.drop-title { font-size: 14px; font-weight: 600; color: var(--text1); }
+.drop-sub { font-size: 12px; color: var(--text3); margin-top: 6px; }
+
+/* ── FILE INFO ─────────────────────────────────────── */
+.file-info {
+  display: none;
+  align-items: center;
+  gap: 12px;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-xs);
+  padding: 14px 16px;
+  margin-top: 16px;
+}
+.file-info.visible { display: flex; }
+.file-info .icon { font-size: 22px; }
+.file-info .name { font-weight: 600; font-size: 13px; flex: 1; word-break: break-all; }
+.file-info .size { color: var(--text3); font-size: 12px; white-space: nowrap; }
+.file-info .remove {
+  background: none; border: none; color: var(--text3); cursor: pointer;
+  font-size: 18px; padding: 2px 6px; border-radius: 6px; transition: var(--transition);
+}
+.file-info .remove:hover { color: var(--error); background: var(--error-bg); }
+
+/* ── FORM INPUT ────────────────────────────────────── */
+.form-group { margin-top: 16px; }
+.form-group label {
+  display: block; font-size: 12px; font-weight: 600; color: var(--text3);
+  text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px;
+}
+.form-group input[type="text"] {
+  width: 100%; background: var(--bg2); border: 1px solid var(--border);
+  border-radius: var(--radius-xs); color: var(--text1);
+  padding: 11px 14px; font-size: 14px; font-family: inherit;
+  outline: none; transition: var(--transition);
+}
+.form-group input[type="text"]:focus {
+  border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-glow);
+}
+
+/* ── BUTTON ────────────────────────────────────────── */
+.btn-run {
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  width: 100%; padding: 15px 20px; margin-top: 24px;
+  border: none; border-radius: var(--radius-sm);
+  font-size: 16px; font-weight: 700; font-family: inherit;
+  cursor: pointer; transition: var(--transition);
+  background: linear-gradient(135deg, var(--accent), #5b3fd8);
+  color: #fff;
+  box-shadow: var(--shadow-accent);
+  position: relative; overflow: hidden;
+}
+.btn-run::before {
+  content: ''; position: absolute; inset: 0;
+  background: linear-gradient(135deg, rgba(255,255,255,0.08), transparent);
+  opacity: 0; transition: var(--transition);
+}
+.btn-run:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 0 40px -5px var(--accent-glow); }
+.btn-run:hover:not(:disabled)::before { opacity: 1; }
+.btn-run:active:not(:disabled) { transform: translateY(0); }
+.btn-run:disabled { opacity: 0.35; cursor: not-allowed; transform: none; }
+.btn-run .spinner {
+  display: none; width: 20px; height: 20px;
+  border: 2.5px solid rgba(255,255,255,0.3); border-top-color: #fff;
+  border-radius: 50%; animation: spin 0.7s linear infinite;
+}
+.btn-run.loading .spinner { display: inline-block; }
+.btn-run.loading .btn-text { display: none; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ── PROGRESS ──────────────────────────────────────── */
+#progressSection {
+  display: none; margin-top: 24px;
+}
+#progressSection.visible { display: block; }
+.progress-steps { display: flex; flex-direction: column; gap: 10px; }
+.progress-step {
+  display: flex; align-items: center; gap: 12px;
+  padding: 12px 14px;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-xs);
+  font-size: 13px;
+  transition: var(--transition);
+}
+.progress-step .dot {
+  width: 10px; height: 10px; min-width: 10px;
+  border-radius: 50%;
+  background: var(--text3);
+  transition: var(--transition);
+}
+.progress-step.running .dot {
+  background: var(--accent);
+  box-shadow: 0 0 8px var(--accent-glow);
+  animation: pulse 1.2s ease-in-out infinite;
+}
+.progress-step.done .dot { background: var(--success); }
+.progress-step.error .dot { background: var(--error); }
+.progress-step .label { flex: 1; color: var(--text2); }
+.progress-step.running .label { color: var(--text1); font-weight: 600; }
+.progress-step.done .label { color: var(--success); }
+.progress-step.error .label { color: var(--error); }
+.progress-step .detail { font-size: 11px; color: var(--text3); }
+@keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.4; } }
+
+.progress-bar-wrap {
+  margin-top: 14px;
+  background: var(--surface2); border-radius: 99px; height: 6px;
+  overflow: hidden; border: 1px solid var(--border);
+}
+.progress-bar {
+  height: 100%; width: 0%;
+  background: linear-gradient(90deg, var(--accent), #a855f7);
+  border-radius: 99px; transition: width 0.5s ease;
+}
+
+/* ── RESULTS ───────────────────────────────────────── */
+#resultsSection { display: none; }
+#resultsSection.visible { display: block; }
+
+.result-badge {
+  display: flex; align-items: center; gap: 12px;
+  padding: 16px 18px; border-radius: var(--radius-sm);
+  font-size: 14px; font-weight: 600;
+  margin-bottom: 16px;
+}
+.result-badge.success {
+  background: var(--success-bg); border: 1px solid rgba(34,197,94,0.3); color: var(--success);
+}
+.result-badge.error {
+  background: var(--error-bg); border: 1px solid rgba(239,68,68,0.3); color: var(--error);
+}
+
+.result-stats {
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px;
+  margin-bottom: 18px;
+}
+.stat-card {
+  background: var(--surface2); border: 1px solid var(--border);
+  border-radius: var(--radius-xs); padding: 14px 16px; text-align: center;
+}
+.stat-card .value { font-size: 22px; font-weight: 800; color: var(--accent2); }
+.stat-card .label { font-size: 11px; color: var(--text3); margin-top: 4px; text-transform: uppercase; letter-spacing: 0.3px; }
+
+.file-list { margin-top: 10px; }
+.file-list-title {
+  font-size: 12px; font-weight: 600; color: var(--text3);
+  text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px;
+}
+.file-item {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 14px;
+  background: var(--surface2); border: 1px solid var(--border);
+  border-radius: var(--radius-xs);
+  margin-bottom: 6px; transition: var(--transition);
+}
+.file-item:hover { border-color: var(--border-hover); }
+.file-item .fname { flex: 1; font-size: 13px; font-weight: 500; }
+.file-item .fsize { font-size: 11px; color: var(--text3); }
+.file-item .dl-btn {
+  background: var(--surface3); border: 1px solid var(--border);
+  color: var(--accent2); font-size: 12px; font-weight: 600;
+  padding: 5px 12px; border-radius: 6px; cursor: pointer;
+  text-decoration: none; transition: var(--transition);
+}
+.file-item .dl-btn:hover { background: var(--accent); color: #fff; border-color: var(--accent); }
+
+.btn-download-all {
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  width: 100%; padding: 13px; margin-top: 14px;
+  background: var(--surface2); border: 1px solid var(--border);
+  border-radius: var(--radius-xs); color: var(--text1);
+  font-size: 14px; font-weight: 600; font-family: inherit;
+  cursor: pointer; transition: var(--transition); text-decoration: none;
+}
+.btn-download-all:hover { border-color: var(--accent); background: var(--surface3); color: var(--accent2); }
+
+/* ── GUIDE SECTION ─────────────────────────────────── */
+.guide-section { margin-top: 14px; }
+.guide-toggle {
+  display: flex; align-items: center; gap: 8px;
+  width: 100%; background: none; border: none;
+  color: var(--text2); font-size: 13px; font-weight: 600;
+  font-family: inherit; cursor: pointer; padding: 8px 0;
+}
+.guide-toggle:hover { color: var(--accent2); }
+.guide-content {
+  display: none; background: var(--surface2); border: 1px solid var(--border);
+  border-radius: var(--radius-xs); padding: 18px 20px; margin-top: 8px;
+}
+.guide-content.visible { display: block; }
+.guide-content ol { padding-left: 20px; }
+.guide-content li {
+  font-size: 13px; color: var(--text2); margin-bottom: 8px; line-height: 1.6;
+}
+.guide-content code {
+  background: var(--bg); padding: 2px 7px; border-radius: 5px;
+  font-size: 12px; color: var(--accent2); border: 1px solid var(--border);
+}
+.guide-content strong { color: var(--text1); }
+
+/* ── FOOTER ────────────────────────────────────────── */
+.footer {
+  text-align: center; padding: 30px 0 10px;
+  font-size: 12px; color: var(--text3);
+}
+
+/* ── RESPONSIVE ────────────────────────────────────── */
+@media (max-width: 640px) {
+  .container { padding: 24px 16px 40px; }
+  .step-card { padding: 20px; }
+  .result-stats { grid-template-columns: 1fr; }
+  .header h1 { font-size: 22px; }
+}
+</style>
+</head>
+<body>
+
+<div class="container">
+
+  <!-- ── HEADER ─────────────────────────────────────── -->
+  <div class="header">
+    <div class="logo-wrap">🚀</div>
+    <h1>Antigravity Design Automation</h1>
+    <p>PSD 파일을 업로드하면 Figma Plugin 코드로 자동 변환합니다</p>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════
+       STEP 1: 파일 업로드
+       ══════════════════════════════════════════════════ -->
+  <div class="step-card active" id="step1Card">
+    <div class="step-header">
+      <div class="step-number">1</div>
+      <div class="step-title">PSD 파일 업로드</div>
+    </div>
+    <div class="step-desc">포토샵(.psd) 파일을 아래에 드래그하거나 클릭해서 선택하세요.</div>
+
+    <div class="drop-zone" id="dropZone">
+      <input type="file" id="fileInput" accept=".psd" />
+      <span class="drop-icon">📂</span>
+      <div class="drop-title">.psd 파일을 여기에 드래그 또는 클릭</div>
+      <div class="drop-sub">최대 500MB</div>
+    </div>
+    <div class="file-info" id="fileInfo">
+      <span class="icon">📄</span>
+      <span class="name" id="fileName">—</span>
+      <span class="size" id="fileSize">—</span>
+      <button class="remove" id="removeFile" title="제거">✕</button>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════
+       STEP 2: 설정
+       ══════════════════════════════════════════════════ -->
+  <div class="step-card" id="step2Card">
+    <div class="step-header">
+      <div class="step-number">2</div>
+      <div class="step-title">변환 설정</div>
+    </div>
+    <div class="step-desc">Figma에 생성될 최상위 프레임의 이름을 지정하세요.</div>
+    <div class="form-group">
+      <label for="frameName">프레임 이름</label>
+      <input type="text" id="frameName" value="PSD Import" placeholder="Figma 프레임 이름" />
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════
+       STEP 3: 실행
+       ══════════════════════════════════════════════════ -->
+  <div class="step-card" id="step3Card">
+    <div class="step-header">
+      <div class="step-number">3</div>
+      <div class="step-title">변환 실행</div>
+    </div>
+    <div class="step-desc">버튼을 누르면 PSD 추출 → 레이아웃 분석 → Plugin JS 생성이 자동으로 진행됩니다.</div>
+
+    <button class="btn-run" id="runBtn" disabled onclick="runPipeline()">
+      <span class="btn-text">⚡ 변환 시작</span>
+      <span class="spinner"></span>
+    </button>
+
+    <!-- 진행 상태 -->
+    <div id="progressSection">
+      <div class="progress-steps">
+        <div class="progress-step" id="ps1">
+          <div class="dot"></div>
+          <span class="label">PSD 레이어 추출</span>
+          <span class="detail" id="ps1Detail"></span>
+        </div>
+        <div class="progress-step" id="ps2">
+          <div class="dot"></div>
+          <span class="label">레이아웃 분석</span>
+          <span class="detail" id="ps2Detail"></span>
+        </div>
+        <div class="progress-step" id="ps3">
+          <div class="dot"></div>
+          <span class="label">Figma Plugin 코드 생성</span>
+          <span class="detail" id="ps3Detail"></span>
+        </div>
+      </div>
+      <div class="progress-bar-wrap"><div class="progress-bar" id="progressBar"></div></div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════
+       STEP 4: 결과
+       ══════════════════════════════════════════════════ -->
+  <div id="resultsSection">
+    <div class="step-card done" id="step4Card">
+      <div class="step-header">
+        <div class="step-number">4</div>
+        <div class="step-title">변환 결과</div>
+      </div>
+
+      <div class="result-badge" id="resultBadge"></div>
+
+      <div class="result-stats" id="resultStats" style="display:none;">
+        <div class="stat-card"><div class="value" id="statLayers">—</div><div class="label">레이어 수</div></div>
+        <div class="stat-card"><div class="value" id="statTime">—</div><div class="label">소요 시간</div></div>
+        <div class="stat-card"><div class="value" id="statFiles">—</div><div class="label">생성 파일</div></div>
+      </div>
+
+      <div class="file-list" id="fileList"></div>
+
+      <a class="btn-download-all" id="downloadAllBtn" style="display:none;">📦 전체 다운로드 (ZIP)</a>
+
+      <!-- 다음 단계 가이드 -->
+      <div class="guide-section">
+        <button class="guide-toggle" onclick="toggleGuide()">
+          📖 <span>다음 단계: Figma에서 임포트하는 방법</span>
+          <span id="guideArrow">▶</span>
+        </button>
+        <div class="guide-content" id="guideContent">
+          <ol>
+            <li>위에서 <code>figma_plugin_code.js</code> 파일을 다운로드합니다.</li>
+            <li><strong>Figma Desktop</strong> 앱을 실행합니다.</li>
+            <li>메뉴에서 <strong>Plugins → Development → Import plugin from manifest...</strong>를 클릭합니다. (최초 1회)</li>
+            <li><code>antigravity-figma-plugin/manifest.json</code> 파일을 선택합니다.</li>
+            <li>이후 <strong>Plugins → Development → Antigravity PSD Importer</strong>를 실행합니다.</li>
+            <li>플러그인 UI에 다운로드된 <code>.js</code> 파일을 드래그 앤 드롭합니다.</li>
+            <li><strong>⚡ Figma에 임포트</strong> 버튼을 클릭하면 완료!</li>
+          </ol>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="footer">
+    Antigravity Design Automation &mdash; PSD → Figma Pipeline
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════
+     SCRIPTS
+     ══════════════════════════════════════════════════════ -->
+<script>
+let selectedFile = null;
+
+// ── 파일 선택 ─────────────────────────────────────────
+const fileInput = document.getElementById('fileInput');
+const dropZone = document.getElementById('dropZone');
+const fileInfo = document.getElementById('fileInfo');
+
+fileInput.addEventListener('change', e => selectFile(e.target.files[0]));
+
+dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('drag-over'); });
+dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag-over'));
+dropZone.addEventListener('drop', e => {
+  e.preventDefault(); dropZone.classList.remove('drag-over');
+  if (e.dataTransfer.files.length) selectFile(e.dataTransfer.files[0]);
+});
+
+document.getElementById('removeFile').addEventListener('click', () => {
+  selectedFile = null;
+  fileInfo.classList.remove('visible');
+  dropZone.style.display = '';
+  fileInput.value = '';
+  document.getElementById('runBtn').disabled = true;
+});
+
+function selectFile(file) {
+  if (!file) return;
+  selectedFile = file;
+  document.getElementById('fileName').textContent = file.name;
+  document.getElementById('fileSize').textContent = formatBytes(file.size);
+  fileInfo.classList.add('visible');
+  dropZone.style.display = 'none';
+  document.getElementById('runBtn').disabled = false;
+  document.getElementById('step1Card').classList.add('done');
+  document.getElementById('step1Card').classList.remove('active');
+  document.getElementById('step2Card').classList.add('active');
+}
+
+// ── 파이프라인 실행 ───────────────────────────────────
+async function runPipeline() {
+  if (!selectedFile) return;
+  const btn = document.getElementById('runBtn');
+  btn.disabled = true;
+  btn.classList.add('loading');
+  document.getElementById('step2Card').classList.add('done');
+  document.getElementById('step2Card').classList.remove('active');
+  document.getElementById('step3Card').classList.add('active');
+
+  // Reset
+  document.getElementById('resultsSection').classList.remove('visible');
+  const progress = document.getElementById('progressSection');
+  progress.classList.add('visible');
+  setStep(1, 'running');
+  setStep(2, ''); setStep(3, '');
+  setBar(10);
+
+  const formData = new FormData();
+  formData.append('psd_file', selectedFile);
+  formData.append('frame_name', document.getElementById('frameName').value || 'PSD Import');
+
+  // 업로드 & 실행 시작 표시
+  setBar(20);
+
+  // 단계별 시뮬레이션 (실제로는 서버가 한번에 응답)
+  setTimeout(() => { setStep(1, 'running'); setBar(30); }, 300);
+
+  try {
+    const resp = await fetch('/upload', { method: 'POST', body: formData });
+    const data = await resp.json();
+
+    // 단계 결과 반영
+    if (data.steps) {
+      data.steps.forEach(s => {
+        setStep(s.step, s.status, s.detail || '');
+      });
+    }
+
+    if (data.status === 'success') {
+      setBar(100);
+      showResults(data);
+    } else {
+      setBar(0);
+      showError(data);
+    }
+  } catch (err) {
+    setBar(0);
+    showError({ error: err.message, status: 'error' });
+  }
+
+  btn.classList.remove('loading');
+  btn.disabled = false;
+  document.getElementById('step3Card').classList.remove('active');
+  document.getElementById('step3Card').classList.add('done');
+}
+
+function showResults(data) {
+  const section = document.getElementById('resultsSection');
+  section.classList.add('visible');
+  document.getElementById('step4Card').className = 'step-card done';
+
+  const badge = document.getElementById('resultBadge');
+  badge.className = 'result-badge success';
+  badge.textContent = '✅ 변환 완료! 레이어가 성공적으로 추출되었습니다.';
+
+  const stats = document.getElementById('resultStats');
+  stats.style.display = 'grid';
+  document.getElementById('statLayers').textContent = data.total_layers || 0;
+  document.getElementById('statTime').textContent = (data.duration_seconds || 0) + '초';
+  document.getElementById('statFiles').textContent = (data.result_files || []).length;
+
+  // 파일 목록
+  const fileList = document.getElementById('fileList');
+  fileList.innerHTML = '<div class="file-list-title">생성된 파일</div>';
+  (data.result_files || []).forEach(f => {
+    const icon = f.name.endsWith('.js') ? '📜' : (f.name.endsWith('.json') ? '📋' : (f.name.endsWith('.png') ? '🖼️' : '📄'));
+    const highlight = f.name === 'figma_plugin_code.js' ? ' style="border-color:var(--accent);background:var(--surface3);"' : '';
+    fileList.innerHTML += `
+      <div class="file-item"${highlight}>
+        <span>${icon}</span>
+        <span class="fname">${f.name}${f.name === 'figma_plugin_code.js' ? ' ⭐' : ''}</span>
+        <span class="fsize">${formatBytes(f.size)}</span>
+        <a class="dl-btn" href="${f.download_url}" download>다운로드</a>
+      </div>`;
+  });
+
+  // ZIP 다운로드
+  const dlAll = document.getElementById('downloadAllBtn');
+  dlAll.style.display = 'flex';
+  dlAll.href = `/download-all/${data.job_id}`;
+}
+
+function showError(data) {
+  const section = document.getElementById('resultsSection');
+  section.classList.add('visible');
+  const badge = document.getElementById('resultBadge');
+  badge.className = 'result-badge error';
+  badge.textContent = '❌ 오류 발생: ' + (data.error || '알 수 없는 오류');
+}
+
+// ── UI 헬퍼 ──────────────────────────────────────────
+function setStep(num, status, detail) {
+  const el = document.getElementById('ps' + num);
+  el.className = 'progress-step' + (status ? ' ' + status : '');
+  if (detail !== undefined) {
+    document.getElementById('ps' + num + 'Detail').textContent = detail;
+  }
+}
+
+function setBar(pct) {
+  document.getElementById('progressBar').style.width = pct + '%';
+}
+
+function toggleGuide() {
+  const ctt = document.getElementById('guideContent');
+  const arrow = document.getElementById('guideArrow');
+  const vis = ctt.classList.toggle('visible');
+  arrow.textContent = vis ? '▼' : '▶';
+}
+
+function formatBytes(b) {
+  if (b < 1024) return b + ' B';
+  if (b < 1048576) return (b / 1024).toFixed(1) + ' KB';
+  return (b / 1048576).toFixed(1) + ' MB';
+}
+</script>
+</body>
+</html>

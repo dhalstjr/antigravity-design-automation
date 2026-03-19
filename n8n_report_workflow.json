@@ -4,114 +4,118 @@
     {
       "parameters": {
         "httpMethod": "POST",
-        "path": "report-automation-result",
+        "path": "design-automation-report",
+        "responseMode": "responseNode",
         "options": {}
       },
       "name": "Webhook",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 1,
-      "position": [
-        250,
-        300
-      ],
-      "id": "webhook-id"
+      "position": [200, 300],
+      "id": "webhook-trigger"
     },
     {
       "parameters": {
-        "fileSelector": "c:/Users/User/Desktop/안티그래비티/antigravity-design-automation/output_assets/metadata.json",
-        "options": {}
-      },
-      "name": "Read Metadata",
-      "type": "n8n-nodes-base.readBinaryFile",
-      "typeVersion": 1,
-      "position": [
-        450,
-        300
-      ],
-      "id": "read-metadata-id"
-    },
-    {
-      "parameters": {
-        "fieldToConvert": "data",
-        "options": {}
-      },
-      "name": "JSON Parse",
-      "type": "n8n-nodes-base.spreadsheetFile",
-      "typeVersion": 1,
-      "position": [
-        650,
-        300
-      ],
-      "id": "json-parse-id"
-    },
-    {
-      "parameters": {
-        "method": "POST",
-        "url": "https://discord.com/api/webhooks/YOUR_WEBHOOK_URL",
-        "sendBinaryData": false,
-        "options": {},
-        "headerParametersUi": {
-          "parameter": [
+        "conditions": {
+          "string": [
             {
-              "name": "Content-Type",
-              "value": "application/json"
-            }
-          ]
-        },
-        "bodyParametersUi": {
-          "parameter": [
-            {
-              "name": "content",
-              "value": "=디자인 자동화 작업이 완료되었습니다! {{ $json.length }}개의 레이어가 추출되었습니다."
+              "value1": "={{$json[\"status\"]}}",
+              "value2": "success"
             }
           ]
         }
       },
-      "name": "Discord Report",
+      "name": "Check Status",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [420, 300],
+      "id": "check-status"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://discord.com/api/webhooks/YOUR_DISCORD_WEBHOOK_ID/YOUR_DISCORD_WEBHOOK_TOKEN",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameter": [
+            { "name": "Content-Type", "value": "application/json" }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameter": [
+            {
+              "name": "content",
+              "value": "=🎉 **디자인 자동화 완료!**\n\n📁 파일: `{{$json[\"source_file\"].split(\"/\").pop() || $json[\"source_file\"].split(\"\\\\\\\\\").pop()}}`\n🧩 레이어 수: **{{$json[\"total_layers\"]}}개**\n⏱️ 소요 시간: {{$json[\"duration_seconds\"]}}초\n🔗 Figma: {{$json[\"figma_link\"]}}\n🕐 완료 시각: {{$json[\"timestamp\"]}}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "name": "Discord Success",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 1,
-      "position": [
-        850,
-        300
-      ],
-      "id": "discord-report-id"
+      "position": [660, 200],
+      "id": "discord-success"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://discord.com/api/webhooks/YOUR_DISCORD_WEBHOOK_ID/YOUR_DISCORD_WEBHOOK_TOKEN",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameter": [
+            { "name": "Content-Type", "value": "application/json" }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameter": [
+            {
+              "name": "content",
+              "value": "=❌ **디자인 자동화 실패!**\n\n📁 파일: `{{$json[\"source_file\"]}}`\n🕐 시각: {{$json[\"timestamp\"]}}\n\n**오류 내용:**\n```\n{{$json[\"error\"] ? $json[\"error\"].substring(0, 500) : \"알 수 없는 오류\"}}\n```"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "name": "Discord Error",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 1,
+      "position": [660, 420],
+      "id": "discord-error"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\"received\": true, \"status\": \"{{$json['status']}}\"}"
+      },
+      "name": "Respond to Pipeline",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [880, 300],
+      "id": "respond-webhook"
     }
   ],
   "connections": {
     "Webhook": {
+      "main": [[{ "node": "Check Status", "type": "main", "index": 0 }]]
+    },
+    "Check Status": {
       "main": [
-        [
-          {
-            "node": "Read Metadata",
-            "type": "main",
-            "index": 0
-          }
-        ]
+        [{ "node": "Discord Success", "type": "main", "index": 0 }],
+        [{ "node": "Discord Error", "type": "main", "index": 0 }]
       ]
     },
-    "Read Metadata": {
-      "main": [
-        [
-          {
-            "node": "JSON Parse",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
+    "Discord Success": {
+      "main": [[{ "node": "Respond to Pipeline", "type": "main", "index": 0 }]]
     },
-    "JSON Parse": {
-      "main": [
-        [
-          {
-            "node": "Discord Report",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
+    "Discord Error": {
+      "main": [[{ "node": "Respond to Pipeline", "type": "main", "index": 0 }]]
     }
   },
-  "active": false,
-  "settings": {}
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  }
 }
